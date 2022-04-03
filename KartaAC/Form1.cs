@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Windows.Forms.DataVisualization.Charting;
-
+using iTextSharp.text.pdf;
+using iTextSharp.text;
 
 namespace KartaAC
 {
@@ -23,7 +21,7 @@ namespace KartaAC
         {
             
             InitializeComponent();      
-           csvLoading = new CsvLoading(@"D:/danectp/dane1.csv");
+           //csvLoading = new CsvLoading(@"D:/danectp/dane1.csv");
         }
 
         DataGridView data = new DataGridView();
@@ -66,7 +64,7 @@ namespace KartaAC
             data.Location = new Point(0, 0);
             data.Size = new Size(900, 962);
             data.BackgroundColor = Color.White;
-            data.Font = new Font("Times New Roman", 10.0f);
+            data.Font = new System.Drawing.Font("Times New Roman", 10.0f);
             data.AutoResizeColumns();
 
             data.DataSource = csvLoading.listData;
@@ -113,6 +111,8 @@ namespace KartaAC
             chart2.Series.Add("Y");
             chart2.Series[1].ChartType = SeriesChartType.Line;
             chart2.Series[1].Color = Color.Orange;
+
+            
 
             chart2.Series["X"].Points.DataBindXY(table.DefaultView, "Time", table.DefaultView, "X");
             chart2.Series["Y"].Points.DataBindXY(table.DefaultView, "Time", table.DefaultView, "Y");
@@ -170,30 +170,94 @@ namespace KartaAC
 
         }
 
-        private void ExportToPDF_Click(object sender, EventArgs e)
+        private void ExportToPDF_Click_1(object sender, EventArgs e)
         {
-            
-            //string fileName = "Output.pdf";
-            //string filePath = "C://Users//Laptop//Desktop//Dane";
-            //if (!Directory.Exists(filePath))
-            //{
-            //    Directory.CreateDirectory(filePath);
-            //}
-            
+            if (data.Rows.Count > 0)
+            {
+                SaveFileDialog save = new SaveFileDialog();
+                save.Filter = "PDF (*.pdf)|*.pdf";
+                save.FileName = "Result.pdf";
+                bool ErrorMessage = false;
+                if (save.ShowDialog() == DialogResult.OK)
+                {
+                    if (File.Exists(save.FileName))
+                    {
+                        try
+                        {
+                            File.Delete(save.FileName);
+                        }
+                        catch (Exception ex)
+                        {
+                            ErrorMessage = true;
+                            MessageBox.Show("Unable to wride data in disk" + ex.Message);
+                        }
+                    }
+                    if (!ErrorMessage)
+                    {
+                        try
+                        {
+                            PdfPTable pTable = new PdfPTable(data.Columns.Count);
+                            pTable.DefaultCell.Padding = 2;
+                            pTable.WidthPercentage = 100;
+                            pTable.HorizontalAlignment = Element.ALIGN_LEFT;
+                            foreach (DataGridViewColumn col in data.Columns)
+                            {
+                                PdfPCell pCell = new PdfPCell(new Phrase(col.HeaderText));
+                                pTable.AddCell(pCell);
+                            }
+                            foreach (DataGridViewRow viewRow in data.Rows)
+                            {
+                                foreach (DataGridViewCell dcell in viewRow.Cells)
+                                {
+                                    pTable.AddCell(dcell.Value.ToString());
+                                }
+                            }
 
-        }
+                            //dodawanie wykresu
+                            var chartimage = new MemoryStream();
+                            chart2.SaveImage(chartimage, ChartImageFormat.Png);
+                            iTextSharp.text.Image Chart_image = iTextSharp.text.Image.GetInstance(chartimage.GetBuffer());
+                           
 
- 
-        private void ChartScroll_ValueChanged(object sender, EventArgs e)
-        {
-            List<double> a = csvLoading.listData.Select(x => double.Parse(x.Time)).ToList();
-            //List<double> b = csvLoading.listData.Select(x => double.Parse(x.Y)).ToList();
-            //MessageBox.Show(((int)a.Max()).ToString());
-            ChartScroll.Maximum = (int)a.Max();
-            chart2.ChartAreas[0].AxisX.Maximum = ChartScroll.Value + 20;
-            chart2.ChartAreas[0].AxisX.Minimum = ChartScroll.Value - 20;
+
+                            using (FileStream fileStream = new FileStream(save.FileName, FileMode.Create))
+                            {
+                                Document document = new Document(PageSize.A4, 8f, 16f, 16f, 8f);
+                                PdfWriter.GetInstance(document, fileStream);
+                                document.Open();
+                                document.Add(pTable);
+                                document.Add(Chart_image);
+                                document.Close();
+                                fileStream.Close();
+                            }
+                            MessageBox.Show("Data Export Successfully", "info");
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("Error while exporting Data" + ex.Message);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("No Record Found", "Info");
+            }
         }
+    }
+
+
+
+        //private void ChartScroll_ValueChanged(object sender, EventArgs e)
+        //{
+        //    List<double> a = csvLoading.listData.Select(x => double.Parse(x.Time)).ToList();
+        //    //List<double> b = csvLoading.listData.Select(x => double.Parse(x.Y)).ToList();
+        //    //MessageBox.Show(((int)a.Max()).ToString());
+        //    ChartScroll.Maximum = (int)a.Max();
+        //    chart2.ChartAreas[0].AxisX.Maximum = ChartScroll.Value + 20;
+        //    chart2.ChartAreas[0].AxisX.Minimum = ChartScroll.Value - 20;
+        //}
 
 
     }
-}
+

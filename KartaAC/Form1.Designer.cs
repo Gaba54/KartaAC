@@ -278,7 +278,6 @@
             this.ChartScroll.Size = new System.Drawing.Size(1198, 43);
             this.ChartScroll.TabIndex = 27;
             this.ChartScroll.Scroll += new System.Windows.Forms.ScrollEventHandler(this.ChartScroll_Scroll);
-            this.ChartScroll.ValueChanged += new System.EventHandler(this.ChartScroll_ValueChanged);
             // 
             // ExportToPDF
             // 
@@ -288,7 +287,7 @@
             this.ExportToPDF.TabIndex = 28;
             this.ExportToPDF.Text = "Eksportuj do PDF";
             this.ExportToPDF.UseVisualStyleBackColor = true;
-            this.ExportToPDF.Click += new System.EventHandler(this.ExportToPDF_Click);
+            this.ExportToPDF.Click += new System.EventHandler(this.ExportToPDF_Click_1);
             // 
             // Form1
             // 
