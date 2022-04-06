@@ -13,19 +13,32 @@ namespace KartaAC
 {
     public partial class Form1 : Form
     {
+        public enum EWhatChart
+        {
+            ChartX,
+            ChartY,
+            ChartXY,
+            Empty
+        };
+
+        string nameChart = string.Empty;
+
         CsvLoading csvLoading = null;
         string pathFiles = string.Empty;
         List<string> listFileds = null;
-
-        public Form1()
-        {
-            
-            InitializeComponent();      
-           //csvLoading = new CsvLoading(@"D:/danectp/dane1.csv");
-        }
+        EWhatChart whatChart = EWhatChart.Empty;
 
         DataGridView data = new DataGridView();
         DataTable table = new DataTable();
+
+        public Form1()
+        {
+
+            InitializeComponent();
+            timer1.Tick += timer1_Tick;
+            timer1.Interval = 50;
+            //csvLoading = new CsvLoading(@"D:/danectp/dane1.csv");
+        }
 
 
         private void OpenFile_Click(object sender, EventArgs e)
@@ -59,7 +72,7 @@ namespace KartaAC
 
         private void LoadingData()
         {
-            
+
 
             data.Location = new Point(0, 0);
             data.Size = new Size(900, 962);
@@ -72,7 +85,7 @@ namespace KartaAC
         }
         private void ChanegRangeX_Click(object sender, EventArgs e)
         {
-            
+
             double maxX = double.Parse(textBoxMaxX.Text.Replace('.', ','));
             double minX = double.Parse(textBoxMinX.Text.Replace('.', ','));
 
@@ -84,8 +97,9 @@ namespace KartaAC
 
         private void GenerateChart_Click(object sender, EventArgs e)
         {
+            whatChart = EWhatChart.ChartXY;
             table.Columns.Clear();
-            
+
             //Adding file cvs to datatable 
             table.Columns.Add("Time");
             table.Columns.Add("X");
@@ -112,14 +126,23 @@ namespace KartaAC
             chart2.Series[1].ChartType = SeriesChartType.Line;
             chart2.Series[1].Color = Color.Orange;
 
-            
 
-            chart2.Series["X"].Points.DataBindXY(table.DefaultView, "Time", table.DefaultView, "X");
-            chart2.Series["Y"].Points.DataBindXY(table.DefaultView, "Time", table.DefaultView, "Y");
-            
-            
-            chart2.DataBind();
-          
+
+            //chart2.Series["X"].Points.DataBindXY(table.DefaultView, "Time", table.DefaultView, "X");
+            //chart2.Series["Y"].Points.DataBindXY(table.DefaultView, "Time", table.DefaultView, "Y");
+
+            foreach (RowDataDecimal x in csvLoading.listData)
+            {
+                chart2.Series["X"].Points.AddXY(x.Time, x.X);
+                chart2.Series["Y"].Points.AddXY(x.Time, x.Y);
+            }
+
+
+            //chart2.Series["X"].Points.AddY(csvLoading.listData.Select(x => x.X).ToArray());
+
+
+            //chart2.DataBind();
+
         }
 
 
@@ -142,21 +165,29 @@ namespace KartaAC
 
         private void PlotY_Click(object sender, EventArgs e)
         {
+            whatChart = EWhatChart.ChartY;
             chart2.Series.Clear();
             chart2.Series.Add("OnlyY");
             chart2.Series[0].ChartType = SeriesChartType.Line;
             chart2.Series[0].Color = Color.Green;
-            chart2.Series["OnlyY"].Points.DataBindXY(table.DefaultView, "Time", table.DefaultView, "Y");
+            foreach (RowDataDecimal x in csvLoading.listData)
+            {
+                chart2.Series["OnlyY"].Points.AddXY(x.Time, x.Y);
+            }
 
         }
 
         private void PlotX_Click(object sender, EventArgs e)
         {
+            whatChart = EWhatChart.ChartX;
             chart2.Series.Clear();
             chart2.Series.Add("OnlyX");
             chart2.Series[0].ChartType = SeriesChartType.Line;
             chart2.Series[0].Color = Color.Red;
-            chart2.Series["OnlyX"].Points.DataBindXY(table.DefaultView, "Time", table.DefaultView, "X");
+            foreach (RowDataDecimal x in csvLoading.listData)
+            {
+                chart2.Series["OnlyX"].Points.AddXY(x.Time, x.X);
+            }
         }
 
         private void comboBox1_SelectedValueChanged(object sender, EventArgs e)
@@ -189,7 +220,7 @@ namespace KartaAC
                         catch (Exception ex)
                         {
                             ErrorMessage = true;
-                            MessageBox.Show("Unable to wride data in disk" + ex.Message);
+                            MessageBox.Show("Nie można zapisać pliku" + ex.Message);
                         }
                     }
                     if (!ErrorMessage)
@@ -217,7 +248,7 @@ namespace KartaAC
                             var chartimage = new MemoryStream();
                             chart2.SaveImage(chartimage, ChartImageFormat.Png);
                             iTextSharp.text.Image Chart_image = iTextSharp.text.Image.GetInstance(chartimage.GetBuffer());
-                           
+
 
 
                             using (FileStream fileStream = new FileStream(save.FileName, FileMode.Create))
@@ -230,34 +261,129 @@ namespace KartaAC
                                 document.Close();
                                 fileStream.Close();
                             }
-                            MessageBox.Show("Data Export Successfully", "info");
+                            MessageBox.Show("Zapis do pliku zakończony sukcesem", "info");
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show("Error while exporting Data" + ex.Message);
+                            MessageBox.Show("Error podczas eksportu danych" + ex.Message);
                         }
                     }
                 }
             }
             else
             {
-                MessageBox.Show("No Record Found", "Info");
+                MessageBox.Show("Nie znalezniono rekordu", "Info");
             }
         }
+
+        private void ChartScroll_ValueChanged(object sender, EventArgs e)
+        {
+            //    List<double> a = csvLoading.listData.Select(x => double.Parse(x.Time)).ToList();
+            //    //List<double> b = csvLoading.listData.Select(x => double.Parse(x.Y)).ToList();
+            //    //MessageBox.Show(((int)a.Max()).ToString());
+            //    ChartScroll.Maximum = (int)a.Max();
+            //    chart2.ChartAreas[0].AxisX.Maximum = ChartScroll.Value + 20;
+            //    chart2.ChartAreas[0].AxisX.Minimum = ChartScroll.Value - 20;
+        }
+        RowDataDecimal p = null;
+        double x = 0;
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            if (p == null)
+                p = csvLoading.listData.First();
+            else if (csvLoading.listData.IndexOf(p) < csvLoading.listData.Count())
+                p = csvLoading.listData[csvLoading.listData.IndexOf(p) + 1];
+            else
+                timer1.Stop();
+
+
+            switch (whatChart)
+            {
+                case EWhatChart.ChartXY:
+                    chart2.Series[0].Points.AddXY(p.Time, p.X);
+                    chart2.Series[1].Points.AddXY(p.Time, p.Y);
+                    chart2.ChartAreas[0].AxisX.Minimum = chart2.Series[0].Points[0].XValue;
+                    chart2.ChartAreas[0].AxisX.Maximum = p.Time;
+                    chart2.ChartAreas[0].AxisY.Maximum = csvLoading.listData.Select(x => x.X).Max();
+                    chart2.ChartAreas[0].AxisY.Minimum = csvLoading.listData.Select(x => x.X).Min();
+
+                    break;
+                case EWhatChart.ChartX:
+                    chart2.Series[0].Points.AddXY(p.Time, p.X);
+                    chart2.ChartAreas[0].AxisX.Minimum = chart2.Series[0].Points[0].XValue;
+                    chart2.ChartAreas[0].AxisX.Maximum = p.Time;
+                    chart2.ChartAreas[0].AxisY.Maximum = csvLoading.listData.Select(x => x.X).Max();
+                    chart2.ChartAreas[0].AxisY.Minimum = csvLoading.listData.Select(x => x.X).Min();
+                    break;
+
+                case EWhatChart.ChartY:
+                    chart2.Series[0].Points.AddXY(p.Time, p.Y);
+                    chart2.ChartAreas[0].AxisX.Minimum = chart2.Series[0].Points[0].XValue;
+                    chart2.ChartAreas[0].AxisX.Maximum = p.Time;
+                    chart2.ChartAreas[0].AxisY.Maximum = csvLoading.listData.Select(x => x.Y).Max();
+                    chart2.ChartAreas[0].AxisY.Minimum = csvLoading.listData.Select(x => x.Y).Min();
+                    break;
+                case EWhatChart.Empty:
+
+                    break;
+
+            }
+
+            if (chart2.Series[0].Points.Count > 500)
+                chart2.Series[0].Points.RemoveAt(0);
+
+
+            /*chart2.Series[0].Points.AddXY(x, 3 * System.Math.Sin(5 * x) + 5 * System.Math.Cos(3 * x));
+
+            
+
+            
+            x += 0.1;*/
+
+
+        }
+
+        private void buttonXY_Click(object sender, EventArgs e)
+        {
+            if (timer1.Enabled)
+                timer1.Stop();
+            else
+            {
+
+                chart2.Series.Clear();
+                switch (whatChart)
+                {
+                    case EWhatChart.ChartXY:
+                        chart2.Series.Add("X");
+                        chart2.Series[0].ChartType = SeriesChartType.Line;
+                        chart2.Series[0].Color = Color.Blue;
+
+                        chart2.Series.Add("Y");
+                        chart2.Series[1].ChartType = SeriesChartType.Line;
+                        chart2.Series[1].Color = Color.Orange;
+                        break;
+                    case EWhatChart.ChartX:
+                        chart2.Series.Add("OnlyX");
+                        chart2.Series[0].ChartType = SeriesChartType.Line;
+                        chart2.Series[0].Color = Color.Red;
+                        //chart2.ChartAreas[0].AxisX.Maximum = csvLoading.listData.First().X+0.00001;
+                        //chart2.ChartAreas[0].AxisX.Minimum = csvLoading.listData.Select(x => x.X).Min();
+                        break;
+
+                    case EWhatChart.ChartY:
+                        chart2.Series.Add("OnlyY");
+                        chart2.Series[0].ChartType = SeriesChartType.Line;
+                        chart2.Series[0].Color = Color.Green;
+                        break;
+                    case EWhatChart.Empty:
+                        MessageBox.Show("Wygeneruj najpierw wykres :D");
+                        break;
+
+                }
+                timer1.Start();
+            }
+
+        }
     }
-
-
-
-        //private void ChartScroll_ValueChanged(object sender, EventArgs e)
-        //{
-        //    List<double> a = csvLoading.listData.Select(x => double.Parse(x.Time)).ToList();
-        //    //List<double> b = csvLoading.listData.Select(x => double.Parse(x.Y)).ToList();
-        //    //MessageBox.Show(((int)a.Max()).ToString());
-        //    ChartScroll.Maximum = (int)a.Max();
-        //    chart2.ChartAreas[0].AxisX.Maximum = ChartScroll.Value + 20;
-        //    chart2.ChartAreas[0].AxisX.Minimum = ChartScroll.Value - 20;
-        //}
-
-
-    }
+}
 

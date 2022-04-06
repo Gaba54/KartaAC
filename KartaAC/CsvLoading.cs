@@ -14,13 +14,16 @@ namespace KartaAC
     public class CsvLoading
     {
         string path = string.Empty;
-        public List<RowData> listData = null;
-    
+        public List<RowData> listDataString = null;
+        public List<RowDataDecimal> listData = null;
+
         public CsvLoading(string path)
         {
             this.path = path;
-            listData = new List<RowData>();
+            listDataString = new List<RowData>();
+            listData = new List<RowDataDecimal>();
             LoadingData();
+            ConvertListToDeciaml();
         }
 
         private void LoadingData()
@@ -35,13 +38,19 @@ namespace KartaAC
                 using (var csvReader = new CsvReader(streamReader, config))
                 {
 
-                    listData = csvReader.GetRecords<RowData>().ToList();
-                    
+                    listDataString = csvReader.GetRecords<RowData>().ToList();
+
                 }
             }
         }
-       
 
+        private void ConvertListToDeciaml()
+        {
+            foreach (RowData rd in listDataString)
+            {
+                listData.Add(new RowDataDecimal(rd.Time, rd.X, rd.Y));
+            }
+        }
 
 
     }
