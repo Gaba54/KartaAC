@@ -30,13 +30,19 @@ namespace KartaAC
         [Name("Uy [V]")]
         public double Y { get; set; }
 
+        [Name("DxDt [V]")]
+        public double dxdt { get; set; }
+
+        [Name("DyDt [V]")]
+        public double dydt { get; set; }
+
         public RowDataDecimal(string time, string x, string y)
         {
             try
             {
-                this.Time = double.Parse(time);
-                this.X = double.Parse(x);
-                this.Y = double.Parse(y);
+                Time = double.Parse(time);
+                X = double.Parse(x);
+                Y = double.Parse(y);
 
             }
             catch (Exception e)
@@ -44,6 +50,15 @@ namespace KartaAC
                 if (e.Source != null)
                     throw new Exception("Nie udało się przekonwertować danych - problem z danymi!");
             }
+        }
+
+        public RowDataDecimal(double T, double xVal, double yVal, double DXDT, double DYDT) 
+        {
+            Time = T;
+            X = xVal;
+            Y = yVal;
+            dxdt = DXDT;
+            dydt = DYDT;
         }
     }
 }
